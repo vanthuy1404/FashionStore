@@ -25,6 +25,8 @@
         public string Address { get; set; }
         public string Phone { get; set; }
         public DateTime Date { get; set; }
+        public string? MaCoupon { get; set; }
+        public int? PhanTram { get; set; }
 
         public List<OrderItemDTO> Items { get; set; }
     }

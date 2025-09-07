@@ -18,50 +18,75 @@ namespace FashionStore.Controllers
         }
 
         // POST: api/Order
-        [HttpPost]
-        public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
+       [HttpPost]
+public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDto dto)
+{
+    if (dto.Items == null || !dto.Items.Any())
+        return BadRequest(new { message = "Cart is empty" });
+
+    decimal total = 0;
+    var orderItems = new List<OrderItem>();
+
+    foreach (var item in dto.Items)
+    {
+        var product = await _context.Products.FindAsync(item.ProductId);
+        if (product == null)
+            return BadRequest(new { message = $"Product {item.ProductId} not found" });
+
+        var orderItem = new OrderItem
         {
-            if (dto.Items == null || !dto.Items.Any())
-                return BadRequest("Cart is empty");
+            id = Guid.NewGuid().ToString(),
+            product_id = item.ProductId,
+            quantity = item.Quantity,
+            size = item.Size,
+            color = item.Color,
+            price = product.price
+        };
 
-            decimal total = 0;
-            var orderItems = new List<OrderItem>();
+        total += product.price * item.Quantity;
+        orderItems.Add(orderItem);
+    }
 
-            foreach (var item in dto.Items)
-            {
-                var product = await _context.Products.FindAsync(item.ProductId);
-                if (product == null)
-                    return BadRequest($"Product {item.ProductId} not found");
-
-                var orderItem = new OrderItem
-                {
-                    id = Guid.NewGuid().ToString(),
-                    product_id = item.ProductId,
-                    quantity = item.Quantity,
-                    size = item.Size,
-                    color = item.Color,
-                    price = product.price
-                };
-
-                total += product.price * item.Quantity;
-                orderItems.Add(orderItem);
-            }
-
-            var order = new Order
-            {
-                id = Guid.NewGuid().ToString(),
-                user_id = dto.UserId,
-                address = dto.Address,
-                phone = dto.Phone,
-                total = total,
-                OrderItems = orderItems
-            };
-
-            _context.Orders.Add(order);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { orderId = order.id });
+    // ✅ Nếu có coupon
+    Coupon? coupon = null;
+    if (!string.IsNullOrEmpty(dto.CouponId))
+    {
+        coupon = await _context.Coupons.FindAsync(dto.CouponId);
+        if (coupon == null)
+        {
+            return BadRequest(new { message = "Invalid coupon" });
         }
+
+        // kiểm tra thời gian hợp lệ
+        if (coupon.ngay_bat_dau > DateTime.UtcNow || coupon.ngay_ket_thuc < DateTime.UtcNow)
+        {
+            return BadRequest(new { message = "Coupon is expired or not yet valid" });
+        }
+
+        // áp dụng giảm giá
+        total = total - (total * coupon.phan_tram / 100);
+    }
+
+    var order = new Order
+    {
+        id = Guid.NewGuid().ToString(),
+        user_id = dto.UserId,
+        address = dto.Address,
+        phone = dto.Phone,
+        total = total,
+        coupon_id = coupon?.id,  // lưu coupon nếu có
+        OrderItems = orderItems
+    };
+
+    _context.Orders.Add(order);
+    await _context.SaveChangesAsync();
+
+    return Ok(new
+    {
+        orderId = order.id,
+    });
+}
+
 
         // GET: api/Order/{userId}
         [HttpGet("{userId}")]
@@ -71,6 +96,7 @@ namespace FashionStore.Controllers
                 .Where(o => o.user_id == userId)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
+                .Include(o => o.Coupon) // ✅ include thêm coupon
                 .OrderByDescending(o => o.created_at)
                 .ToListAsync();
 
@@ -82,6 +108,11 @@ namespace FashionStore.Controllers
                 Address = o.address,
                 Phone = o.phone,
                 Date = o.created_at,
+
+                // ✅ Trả về thêm thông tin coupon
+                MaCoupon = o.Coupon != null ? o.Coupon.ma_coupon : "Không áp dụng",
+                PhanTram = o.Coupon != null ? o.Coupon.phan_tram : 0,
+
                 Items = o.OrderItems.Select(oi => new OrderItemDTO
                 {
                     Id = oi.id,
@@ -107,6 +138,7 @@ namespace FashionStore.Controllers
             var orders = await _context.Orders
                 .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
+                .Include(o => o.Coupon) // ✅ include thêm coupon
                 .OrderByDescending(o => o.created_at)
                 .ToListAsync();
 
@@ -118,6 +150,9 @@ namespace FashionStore.Controllers
                 Address = o.address,
                 Phone = o.phone,
                 Date = o.created_at,
+                // ✅ Trả về thêm thông tin coupon
+                MaCoupon = o.Coupon != null ? o.Coupon.ma_coupon : "Không áp dụng",
+                PhanTram = o.Coupon != null ? o.Coupon.phan_tram : 0,
                 Items = o.OrderItems.Select(oi => new OrderItemDTO
                 {
                     Id = oi.id,

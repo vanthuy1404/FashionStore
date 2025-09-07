@@ -12,10 +12,17 @@ namespace FashionStore.Data
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<Coupon> Coupons { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // has name table oders
+            modelBuilder.Entity<Order>()
+                .ToTable("orders")
+                .HasKey(o => o.id);
+
 
             modelBuilder.Entity<CartItem>()
                 .HasOne(c => c.Product)

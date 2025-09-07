@@ -21,6 +21,44 @@ namespace FashionStore.Controllers
             var users = await _context.Users.ToListAsync();
             return Ok(users);
         }
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserById(string id)
+        {
+            var user = await _context.Users.FindAsync(id);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            return Ok(user);
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateUser([FromBody] User model)
+        {
+            // Check email đã tồn tại chưa
+            var exists = await _context.Users.AnyAsync(u => u.email == model.email);
+            if (exists)
+                return BadRequest(new { message = "Email already exists" });
+
+            model.id = Guid.NewGuid().ToString(); // sinh id mới
+            _context.Users.Add(model);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetUserById), new { id = model.id }, model);
+        }
+        
+
+        // Xóa user
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.id == id);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "User deleted successfully" });
+        }
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
