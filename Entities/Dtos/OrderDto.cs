@@ -27,6 +27,8 @@
         public DateTime Date { get; set; }
         public string? MaCoupon { get; set; }
         public int? PhanTram { get; set; }
+        
+        public int? ShippingFee { get; set; }
 
         public List<OrderItemDTO> Items { get; set; }
     }

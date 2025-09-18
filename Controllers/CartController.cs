@@ -8,17 +8,12 @@ namespace FashionStore.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CartController : ControllerBase
+    public class CartController(FStoreDbContext context) : ControllerBase
     {
-        private readonly FStoreDbContext _context;
-        public CartController(FStoreDbContext context)
-        {
-            _context = context;
-        }
         [HttpGet("{userId}")]
         public async Task<ActionResult<IEnumerable<CartItemGetDto>>> GetCart(string userId)
         {
-            var cartItems = await _context.CartItems
+            var cartItems = await context.CartItems
                 .Where(c => c.user_id == userId)
                 .Include(c => c.Product) // join sang bảng product
                 .Select(c => new CartItemGetDto
@@ -51,7 +46,7 @@ namespace FashionStore.Controllers
                 return BadRequest("Thông tin không hợp lệ.");
 
             // kiểm tra item đã tồn tại chưa
-            var existingItem = await _context.CartItems
+            var existingItem = await context.CartItems
                 .FirstOrDefaultAsync(c =>
                     c.user_id == dto.user_id &&
                     c.product_id == dto.product_id &&
@@ -62,7 +57,7 @@ namespace FashionStore.Controllers
             {
                 // đã tồn tại => tăng quantity
                 existingItem.quantity += dto.quantity;
-                _context.CartItems.Update(existingItem);
+                context.CartItems.Update(existingItem);
             }
             else
             {
@@ -76,17 +71,17 @@ namespace FashionStore.Controllers
                     size = dto.size,
                     color = dto.color
                 };
-                await _context.CartItems.AddAsync(newItem);
+                await context.CartItems.AddAsync(newItem);
             }
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
             return Ok("Thêm vào giỏ hàng thành công!");
         }
         // API cập nhật số lượng
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateQuantity(string id, [FromBody] UpdateCartDto dto)
         {
-            var cartItem = await _context.CartItems.FirstOrDefaultAsync(c => c.id == id);
+            var cartItem = await context.CartItems.FirstOrDefaultAsync(c => c.id == id);
             if (cartItem == null)
                 return NotFound(new { message = "Cart item not found" });
 
@@ -95,8 +90,8 @@ namespace FashionStore.Controllers
 
             cartItem.quantity = dto.quantity;
 
-            _context.CartItems.Update(cartItem);
-            await _context.SaveChangesAsync();
+            context.CartItems.Update(cartItem);
+            await context.SaveChangesAsync();
 
             return Ok(new { message = "Quantity updated successfully" });
         }
@@ -105,13 +100,12 @@ namespace FashionStore.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCartItem(string id)
         {
-            var cartItem = await _context.CartItems.FirstOrDefaultAsync(c => c.id == id);
+            var cartItem = await context.CartItems.FirstOrDefaultAsync(c => c.id == id);
             if (cartItem == null)
                 return NotFound(new { message = "Cart item not found" });
 
-            _context.CartItems.Remove(cartItem);
-            await _context.SaveChangesAsync();
-
+            context.CartItems.Remove(cartItem);
+            await context.SaveChangesAsync();
             return Ok(new { message = "Cart item deleted successfully" });
         }
     }

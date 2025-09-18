@@ -8,10 +8,11 @@ namespace FashionStore.Entities.Models
         public string id { get; set; }           // PK
         public string user_id { get; set; }
         public decimal total { get; set; }
-        public string status { get; set; } = "Chờ xác nhận";
+        public string status { get; set; } = "Chờ xác nhận"; // Hủy: "Yêu cầu hủy"
         public string address { get; set; }
         public string phone { get; set; }
         public string? coupon_id { get; set; }  // FK đến Coupon
+        public int? shipping_fee { get; set; } 
         public DateTime created_at { get; set; } = DateTime.UtcNow;
 
         // Navigation property

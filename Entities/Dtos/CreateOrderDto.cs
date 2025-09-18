@@ -14,9 +14,12 @@ namespace FashionStore.Entities.Dtos
         public string Address { get; set; }
         [JsonPropertyName("coupon_id")]
         public string? CouponId { get; set; }  // Thêm trường coupon_id
+        [JsonPropertyName("shipping_fee")]
+        public int? ShippingFee { get; set; }
 
         [JsonPropertyName("items")]
         public List<CreateOrderItemDto> Items { get; set; }
+        
         
     }
 }

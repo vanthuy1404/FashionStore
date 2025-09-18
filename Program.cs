@@ -1,8 +1,9 @@
 ﻿using FashionStore.Data;
 using Microsoft.EntityFrameworkCore;
+using OfficeOpenXml;
 
 var builder = WebApplication.CreateBuilder(args);
-
+ExcelPackage.License.SetNonCommercialPersonal("Dang Van Thuy");
 // Add services to the container.
 
 builder.Services.AddControllers();
